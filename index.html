@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f5f4a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Despensa">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>DespensApp</title>
+<style>
+:root{--bg:#e9f0ec;--card:#fff;--ink:#14261f;--mut:#5f7169;--pri:#1f5f4a;--soft:#d6e3dc;--line:#cfdcd5}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+body{font:17px/1.4 ui-rounded,"Nunito","Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:88px}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:max(12px,env(safe-area-inset-top)) 16px 12px;display:flex;gap:8px;align-items:center;justify-content:space-between}
+h1{font-size:22px;letter-spacing:-.02em}h2{margin:8px 0 12px}
+button{font:inherit;border:0;border-radius:14px;cursor:pointer;color:var(--ink)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #f0b429;outline-offset:2px}
+.pri{background:var(--pri);color:#fff;padding:12px 16px;font-weight:700;min-height:48px}
+.ghost{background:var(--soft);padding:12px;min-height:48px}
+main{padding:0 16px;max-width:640px;margin:auto}
+input,select{font:inherit;width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;background:#fff;min-height:48px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 0;scrollbar-width:none}
+.chip{flex:none;padding:10px 16px;background:var(--soft);border-radius:99px;min-height:44px}
+.chip.on{background:var(--pri);color:#fff}
+.card{background:var(--card);border-radius:18px;padding:14px;margin-bottom:10px;border:1px solid var(--line);display:flex;gap:12px;align-items:center;justify-content:space-between}
+.info{flex:1;min-width:0}.name{font-weight:700;text-transform:capitalize}
+.sub{color:var(--mut);font-size:14px}
+.tag{display:inline-block;font-size:13px;padding:2px 10px;border-radius:99px;margin:6px 6px 0 0}
+.verde{background:#cdeed6}.amarillo{background:#fde9a6}.rojo{background:#f9c9c3}.warn{background:#ffd9b8}
+.ctr{display:flex;align-items:center;gap:6px}
+.ctr button{width:52px;height:52px;font-size:26px;background:var(--pri);color:#fff}
+.ctr button.m{background:var(--soft);color:var(--ink)}
+.ctr b{min-width:56px;text-align:center;line-height:1.1}.ctr small{font-weight:400;color:var(--mut)}
+.buy{color:var(--pri);font-size:18px;text-align:right}
+.done{opacity:.4;text-decoration:line-through}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#fff;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;padding:14px;min-height:64px;color:var(--mut);border-radius:0}
+nav button.on{color:var(--pri);font-weight:800}
+#badge{background:#c0392b;color:#fff;border-radius:99px;padding:0 7px;font-size:13px}#badge:empty{display:none}
+dialog{border:0;border-radius:22px;padding:18px;width:min(94vw,480px);max-height:92vh;overflow:auto;margin:auto}
+dialog::backdrop{background:#0008}
+label{display:block;font-size:14px;color:var(--mut);margin-top:10px}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sim{background:#fff6dd;border-radius:12px;padding:10px;margin-top:6px;cursor:pointer}
+.err{color:#b3261e;margin-top:8px;font-size:14px}
+.row{display:flex;gap:8px;margin-top:14px}.row button{flex:1}
+#toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:#14261f;color:#fff;padding:10px 16px;border-radius:14px;display:none;z-index:20}
+</style>
+</head>
+<body>
+<header>
+  <h1>DespensApp</h1>
+  <div><button class="ghost" id="cats">Categorías</button> <button class="pri" id="new">+ Nuevo Producto</button></div>
+</header>
+<main>
+  <section id="v-despensa">
+    <input id="q" type="search" placeholder="Buscar producto" autocomplete="off" maxlength="80">
+    <div class="chips" id="chips"></div>
+    <div id="list"></div>
+  </section>
+  <section id="v-compras" hidden>
+    <h2>Lista de compras</h2>
+    <div id="shop"></div>
+  </section>
+</main>
+<nav>
+  <button id="n-despensa" class="on">Despensa</button>
+  <button id="n-compras">Compras <span id="badge"></span></button>
+</nav>
+<div id="toast"></div>
+
+<dialog id="dlg">
+  <form id="f">
+    <h2 id="title"></h2>
+    <label>Nombre<input name="nombre" required maxlength="80" autocomplete="off"></label>
+    <div id="sug"></div>
+    <label>Categoría<select name="categoria_id"></select></label>
+    <div class="g">
+      <label>Cantidad actual<input name="cantidad_actual" type="number" min="0" step="any" inputmode="decimal" required></label>
+      <label>Unidad<input name="unidad_medida" list="uds" required maxlength="20"></label>
+      <label>Stock mínimo<input name="stock_minimo" type="number" min="0" step="any" inputmode="decimal" required></label>
+      <label>Stock deseado<input name="stock_deseado" type="number" min="0" step="any" inputmode="decimal" required></label>
+    </div>
+    <datalist id="uds"><option value="unidades"><option value="cajas"><option value="paquetes"><option value="latas"><option value="kg"><option value="litros"></datalist>
+    <label>Vencimiento (opcional)<input name="fecha_vencimiento" type="date"></label>
+    <p class="err" id="err"></p>
+    <div class="row">
+      <button type="button" class="ghost" id="cancel">Cancelar</button>
+      <button class="pri">Guardar</button>
+    </div>
+    <div class="row"><button type="button" class="ghost" id="del">Eliminar producto</button></div>
+  </form>
+</dialog>
+
+<dialog id="cd">
+  <h2>Categorías</h2>
+  <div id="clist"></div>
+  <form id="cf" class="row"><input name="n" placeholder="Nueva categoría" required maxlength="40"><button class="pri" style="flex:none">Añadir</button></form>
+  <p class="err" id="cerr"></p>
+  <h2 style="margin-top:20px">Copia de seguridad</h2>
+  <p class="sub">Tus datos viven solo en este teléfono. Guarda una copia de vez en cuando.</p>
+  <div class="row"><button type="button" class="ghost" id="exp">Guardar copia</button><button type="button" class="ghost" id="impb">Restaurar copia</button></div>
+  <input type="file" id="imp" accept="application/json,.json" hidden>
+  <div class="row"><button type="button" class="pri" id="cclose">Cerrar</button></div>
+</dialog>
+
+<script>
+const $ = s => document.querySelector(s);
+const h = (t, a = {}, ...k) => {   // DOM por nodos de texto, nunca innerHTML: inmune a XSS
+  const e = document.createElement(t);
+  for (const [n, v] of Object.entries(a))
+    n.startsWith("on") ? e.addEventListener(n.slice(2), v) : n === "class" ? e.className = v : e.setAttribute(n, v);
+  e.append(...k.filter(x => x != null && x !== false));
+  return e;
+};
+const toast = m => { const t = $("#toast"); t.textContent = m; t.style.display = "block"; clearTimeout(toast.t); toast.t = setTimeout(() => t.style.display = "none", 2500); };
+const fmt = n => +(+n).toFixed(2);
+const limpiar = s => s.replace(/[<>"'`&]/g, "").replace(/\s+/g, " ").trim();
+const norm = s => limpiar(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+// ---------- Datos locales (localStorage) ----------
+const KEY = "despensapp.v1", PASOS = {kg: .25, litros: .5, litro: .5, l: .5};
+const cargar = () => {
+  try { const d = JSON.parse(localStorage.getItem(KEY)); if (d && Array.isArray(d.cats) && Array.isArray(d.prods)) return d; } catch (_) {}
+  return {cats: ["Lácteos", "Almacén", "Bebidas", "Limpieza", "Frutas y verduras"].map((nombre, i) => ({id: i + 1, nombre})), prods: [], seq: 6};
+};
+let D = cargar();
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch (_) { toast("No se pudo guardar en este navegador"); } };
+const S = {cat: null, q: "", venc: false, done: new Set()};
+
+// ---------- Reglas de negocio ----------
+const hoy = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); };
+function enr(p) {
+  let dias = null, e = "sin_fecha";
+  if (p.fecha_vencimiento) {   // semáforo: verde > 7 días, amarillo <= 7, rojo vencido
+    const [y, m, d] = p.fecha_vencimiento.split("-").map(Number);
+    dias = Math.round((new Date(y, m - 1, d) - hoy()) / 864e5);
+    e = dias < 0 ? "rojo" : dias <= 7 ? "amarillo" : "verde";
+  }
+  const util = e === "rojo" ? 0 : p.cantidad_actual;   // vencido = stock útil 0
+  const c = D.cats.find(c => c.id === p.categoria_id);
+  return {...p, categoria: c ? c.nombre : "", estado_venc: e, dias, cantidad_util: util, bajo_stock: util <= p.stock_minimo, paso: PASOS[p.unidad_medida] || 1};
+}
+const compras = () => D.prods.map(enr).filter(p => p.cantidad_util <= p.stock_minimo)
+  .map(p => ({...p, sugerida: Math.max(fmt(p.stock_deseado - p.cantidad_util), 0), motivo: p.estado_venc === "rojo" ? "vencido" : "bajo stock"}))
+  .sort((a, b) => a.categoria.localeCompare(b.categoria) || a.nombre.localeCompare(b.nombre));
+const similares = v => {
+  const q = norm(v); if (q.length < 2) return [];
+  const t = q.split(" ").filter(x => x.length > 3);
+  return D.prods.filter(p => p.nombre.includes(q) || q.includes(p.nombre) || t.some(x => p.nombre.split(" ").includes(x))).slice(0, 5).map(enr);
+};
+function adjust(id, dir) {   // RF02 + piso en 0; actualización inmediata
+  const p = D.prods.find(p => p.id === id);
+  p.cantidad_actual = Math.max(0, +(p.cantidad_actual + dir * (PASOS[p.unidad_medida] || 1)).toFixed(4));
+  save(); render();
+}
+
+// ---------- Vistas ----------
+const chip = (t, id) => h("button", {class: "chip" + (S.cat === id ? " on" : ""), onclick: () => { S.cat = id; render(); }}, t);
+const card = p => {
+  const v = {verde: `🟢 Vence en ${p.dias} días`, amarillo: p.dias === 0 ? "🟡 Vence hoy" : `🟡 Vence en ${p.dias} días`, rojo: "🔴 Vencido, sin stock útil"}[p.estado_venc];
+  return h("div", {class: "card"},
+    h("div", {class: "info", onclick: () => openForm(p)},
+      h("div", {class: "name"}, p.nombre),
+      h("div", {class: "sub"}, `${p.categoria}, mínimo ${fmt(p.stock_minimo)} ${p.unidad_medida}`),
+      v && h("span", {class: "tag " + p.estado_venc}, v),
+      p.bajo_stock && h("span", {class: "tag warn"}, "⚠ Bajo stock")),
+    h("div", {class: "ctr"},
+      h("button", {class: "m", "aria-label": "Quitar", onclick: () => adjust(p.id, -1)}, "−"),
+      h("b", {}, fmt(p.cantidad_actual), h("br"), h("small", {}, p.unidad_medida)),
+      h("button", {"aria-label": "Agregar", onclick: () => adjust(p.id, 1)}, "+")));
+};
+function render() {
+  if (!D.cats.some(c => c.id === S.cat)) S.cat = null;
+  $("#chips").replaceChildren(chip("Todas", null), ...D.cats.map(c => chip(c.nombre, c.id)),
+    h("button", {class: "chip" + (S.venc ? " on" : ""), onclick: () => { S.venc = !S.venc; render(); }}, "⏳ Próximos a vencer"));
+  const L = D.prods.map(enr).filter(p => (!S.cat || p.categoria_id === S.cat) && p.nombre.includes(norm(S.q)));
+  L.sort(S.venc ? (a, b) => (a.dias ?? 1e9) - (b.dias ?? 1e9) : (a, b) => a.nombre.localeCompare(b.nombre));
+  $("#list").replaceChildren(...(L.length ? L.map(card) : [h("p", {class: "sub"}, "No hay productos. Toca + Nuevo Producto para agregar el primero.")]));
+  const C = compras();
+  $("#shop").replaceChildren(...(C.length ? C.map(p => h("div", {
+      class: "card" + (S.done.has(p.id) ? " done" : ""),
+      onclick: () => { S.done.has(p.id) ? S.done.delete(p.id) : S.done.add(p.id); render(); }},
+    h("div", {class: "info"}, h("div", {class: "name"}, p.nombre), h("div", {class: "sub"}, `${p.categoria}, ${p.motivo}`)),
+    h("b", {class: "buy"}, `Comprar +${fmt(p.sugerida)} ${p.unidad_medida}`))) : [h("p", {class: "sub"}, "Nada por comprar. La despensa está al día.")]));
+  $("#badge").textContent = C.length || "";
+}
+
+// ---------- Formulario de producto ----------
+const F = $("#f");
+function openForm(p) {
+  if (!D.cats.length) return toast("Primero crea una categoría");
+  F.reset(); $("#err").textContent = ""; $("#sug").replaceChildren();
+  F.dataset.id = p ? p.id : "";
+  F.elements.categoria_id.replaceChildren(...D.cats.map(c => h("option", {value: c.id}, c.nombre)));
+  $("#title").textContent = p ? "Editar producto" : "Nuevo producto";
+  $("#del").hidden = !p;
+  const v = p || {nombre: "", categoria_id: S.cat || D.cats[0].id, cantidad_actual: 0, stock_minimo: 1, stock_deseado: 2, unidad_medida: "unidades"};
+  for (const k of ["nombre", "categoria_id", "cantidad_actual", "stock_minimo", "stock_deseado", "unidad_medida", "fecha_vencimiento"]) F.elements[k].value = v[k] ?? "";
+  $("#dlg").showModal();
+}
+F.elements.nombre.addEventListener("input", e => {   // Prioridad 1: similares mientras escribe
+  if (F.dataset.id) return;
+  const s = similares(e.target.value);
+  $("#sug").replaceChildren(...(s.length ? [h("small", {}, "Ya existe algo parecido. Toca para editarlo en vez de duplicar:"),
+    ...s.map(x => h("div", {class: "sim", onclick: () => { $("#dlg").close(); openForm(x); }},
+      `${x.nombre} (${x.categoria}): ${fmt(x.cantidad_actual)} ${x.unidad_medida}`))] : []));
+});
+F.addEventListener("submit", e => {
+  e.preventDefault();
+  const f = F.elements, id = +F.dataset.id || 0;
+  const d = {categoria_id: +f.categoria_id.value, nombre: norm(f.nombre.value), cantidad_actual: +f.cantidad_actual.value,
+    stock_minimo: +f.stock_minimo.value, stock_deseado: +f.stock_deseado.value, unidad_medida: norm(f.unidad_medida.value),
+    fecha_vencimiento: f.fecha_vencimiento.value || null};
+  const er = !d.nombre || !d.unidad_medida ? "Completa el nombre y la unidad"
+    : [d.cantidad_actual, d.stock_minimo, d.stock_deseado].some(n => !(n >= 0)) ? "Las cantidades no pueden ser negativas"
+    : d.stock_deseado < d.stock_minimo ? "El stock deseado debe ser mayor o igual al mínimo"
+    : D.prods.some(p => p.id !== id && p.categoria_id === d.categoria_id && p.nombre === d.nombre) ? "Ya existe un producto con ese nombre en la categoría" : "";
+  if (er) return $("#err").textContent = er;
+  if (id) Object.assign(D.prods.find(p => p.id === id), d); else D.prods.push({id: D.seq++, ...d});
+  save(); $("#dlg").close(); render();
+});
+$("#cancel").onclick = () => $("#dlg").close();
+$("#del").onclick = () => {
+  if (!confirm("¿Eliminar este producto?")) return;
+  D.prods = D.prods.filter(p => p.id !== +F.dataset.id); save(); $("#dlg").close(); render();
+};
+
+// ---------- Categorías y copia de seguridad ----------
+const dup = (n, id) => D.cats.some(c => c.id !== id && c.nombre.toLowerCase() === n.toLowerCase());
+function catOp(fn) { const er = fn(); $("#cerr").textContent = er || ""; if (!er) { save(); render(); catRows(); } }
+const catRows = () => $("#clist").replaceChildren(...D.cats.map(c => h("div", {class: "card"},
+  h("span", {class: "name"}, c.nombre),
+  h("span", {},
+    h("button", {class: "ghost", "aria-label": "Renombrar", onclick: () => { const n = limpiar(prompt("Nuevo nombre", c.nombre) || ""); n && catOp(() => dup(n, c.id) ? "La categoría ya existe" : void (c.nombre = n)); }}, "✏️"), " ",
+    h("button", {class: "ghost", "aria-label": "Eliminar", onclick: () => confirm("¿Eliminar categoría?") && catOp(() =>
+      D.prods.some(p => p.categoria_id === c.id) ? "Tiene productos: muévelos o elimínalos primero" : void (D.cats = D.cats.filter(x => x.id !== c.id)))}, "🗑")))));
+$("#cats").onclick = () => { $("#cerr").textContent = ""; catRows(); $("#cd").showModal(); };
+$("#cclose").onclick = () => $("#cd").close();
+$("#cf").onsubmit = e => {
+  e.preventDefault(); const n = limpiar(e.target.elements.n.value);
+  catOp(() => !n ? "Nombre vacío" : dup(n, 0) ? "La categoría ya existe" : void D.cats.push({id: D.seq++, nombre: n}));
+  e.target.reset();
+};
+$("#exp").onclick = () => h("a", {href: URL.createObjectURL(new Blob([JSON.stringify(D)], {type: "application/json"})), download: `despensa-${new Date().toISOString().slice(0, 10)}.json`}).click();
+$("#impb").onclick = () => $("#imp").click();
+$("#imp").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (!Array.isArray(d.cats) || !Array.isArray(d.prods)) throw 0;
+    if (!confirm("Esto reemplaza todo el inventario actual. ¿Continuar?")) return;
+    d.seq = Math.max(d.seq || 0, ...d.cats.map(c => c.id), ...d.prods.map(p => p.id)) + 1;
+    D = d; save(); render(); catRows(); toast("Copia restaurada");
+  } catch (_) { toast("El archivo no es una copia válida"); }
+  e.target.value = "";
+};
+
+// ---------- Navegación y arranque ----------
+function tab(t) {
+  $("#v-despensa").hidden = t !== "despensa"; $("#v-compras").hidden = t !== "compras";
+  $("#n-despensa").classList.toggle("on", t === "despensa"); $("#n-compras").classList.toggle("on", t === "compras");
+  D = cargar(); render();
+}
+$("#n-despensa").onclick = () => tab("despensa");
+$("#n-compras").onclick = () => tab("compras");
+$("#new").onclick = () => openForm();
+$("#q").oninput = e => { S.q = e.target.value; render(); };
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { D = cargar(); render(); } });   // al volver a la app (y cambia el día)
+addEventListener("storage", e => { if (e.key === KEY) { D = cargar(); render(); } });
+
+navigator.storage?.persist?.();   // pide al navegador no borrar los datos
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+render();
+</script>
+</body>
+</html>
